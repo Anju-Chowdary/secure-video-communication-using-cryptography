@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Vault</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #e3f2fd;
+            padding: 40px;
+            text-align: center;
+            margin: 0;
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .video-card {
+            background: white;
+            padding: 20px;
+            margin: 20px auto;
+            max-width: 600px;
+            border-radius: 12px;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+            text-align: left;
+        }
+        .video-card p {
+            margin: 6px 0;
+            font-size: 16px;
+            color: #222;
+        }
+        a.button {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 10px 16px;
+            background: #007BFF;
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+        }
+        a.button:hover {
+            background: #0056b3;
+        }
+        .empty-msg {
+            font-size: 18px;
+            color: #666;
+            margin-top: 50px;
+        }
+    </style>
+</head>
+<body>
+    <h2>📂 My Vault</h2>
+    {% if videos %}
+        {% for v in videos %}
+            <div class="video-card">
+                <p><strong>From:</strong> {{ v.from }}</p>
+                <p><strong>Timestamp:</strong> {{ v.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
+                <a class="button" href="/view-video/{{ v._id }}">▶ View Decrypted Video</a>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-msg">🔒 No videos available in your vault yet.</div>
+    {% endif %}
+</body>
+</html>

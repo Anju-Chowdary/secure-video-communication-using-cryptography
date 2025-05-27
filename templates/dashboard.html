@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(to right, #667eea, #764ba2);
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 50px auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+        }
+        h2 {
+            text-align: center;
+            color: #444;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-top: 40px;
+        }
+        .section-title {
+            font-size: 20px;
+            margin-bottom: 15px;
+            color: #222;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 5px;
+        }
+        .card {
+            background: #f9f9f9;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .card span {
+            font-size: 17px;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            background-color: #007BFF;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .logout {
+            margin-top: 40px;
+            text-align: center;
+        }
+        .logout a {
+            text-decoration: none;
+            background-color: crimson;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+        }
+        .logout a:hover {
+            background-color: darkred;
+        }
+        .flash-msg {
+            background-color: #dff0d8;
+            color: #3c763d;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 16px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Welcome, {{ user }}</h2>
+
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="flash-msg">
+                {% for message in messages %}
+                    <p>{{ message }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% endwith %}
+
+        <!-- Send a Request -->
+        <div class="section">
+            <div class="section-title">Send a Video Request</div>
+            {% for u in users %}
+                <div class="card">
+                    <span>{{ u }}</span>
+                    <form method="POST" action="/request-video">
+                        <input type="hidden" name="to_user" value="{{ u }}">
+                        <button type="submit">Request Video</button>
+                    </form>
+                </div>
+            {% else %}
+                <p>No other users to request.</p>
+            {% endfor %}
+        </div>
+
+        <!-- Incoming Requests -->
+        <div class="section">
+            <div class="section-title">Incoming Requests</div>
+            {% if requests %}
+                {% for r in requests %}
+                    <div class="card">
+                        <span>📩 Request from <strong>{{ r.from }}</strong></span>
+                        <form method="POST" action="/respond/{{ r.from }}">
+                            <button type="submit">Respond</button>
+                        </form>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p>No pending requests.</p>
+            {% endif %}
+        </div>
+
+        <!-- Sent Requests -->
+        <div class="section">
+            <div class="section-title">Sent Requests</div>
+            {% if sent_requests %}
+                {% for s in sent_requests %}
+                    <div class="card">
+                        <span>📤 Sent to <strong>{{ s.to }}</strong></span>
+                        <span>Status: <em>{{ s.status }}</em></span>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p>You haven't sent any requests.</p>
+            {% endif %}
+        </div>
+
+        <!-- Completed Video Responses -->
+        <div class="section">
+            <div class="section-title">Completed Responses</div>
+            <p>🔒 Your decrypted responses are securely stored in your vault.</p>
+            <a href="/my-vault"><button>Access My Vault</button></a>
+        </div>
+
+        <div class="logout">
+            <a href="/">Logout</a>
+        </div>
+    </div>
+</body>
+</html>

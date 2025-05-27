@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Respond to Request</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(to right, #ffecd2, #fcb69f);
+            padding: 40px;
+            text-align: center;
+        }
+        .container {
+            max-width: 700px;
+            margin: auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            padding: 30px;
+        }
+        video {
+            width: 100%;
+            max-height: 400px;
+            margin-top: 20px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+        }
+        button, input[type="file"] {
+            margin: 10px;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+        }
+        .record-btn { background-color: #28a745; color: white; }
+        .stop-btn { background-color: #dc3545; color: white; }
+        .upload-btn { background-color: #007BFF; color: white; }
+        .confirm-btn { background-color: #ffc107; color: #333; }
+        .retry-btn { background-color: crimson; color: white; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2 id="requesterHeader" data-requester="{{ requester }}">Responding to: {{ requester }}</h2>
+
+    <video id="preview" controls autoplay muted></video>
+
+    <div>
+        <button class="record-btn" onclick="startRecording()">🎥 Start Recording</button>
+        <button class="stop-btn" onclick="stopRecording()" id="stopBtn" style="display:none;">🛑 Stop Recording</button>
+        <input type="file" id="videoUpload" accept="video/*" class="upload-btn" onchange="handleUpload(event)">
+    </div>
+
+    <div>
+        <button class="confirm-btn" onclick="submitVideo()" style="display:none;" id="confirmBtn">✅ Confirm & Send</button>
+        <button class="retry-btn" onclick="reset()" style="display:none;" id="retryBtn">🔁 Retry</button>
+    </div>
+
+    <a href="/dashboard">Back to Dashboard</a>
+</div>
+
+<script>
+let mediaRecorder;
+let recordedBlobs = [];
+let videoFile = null;
+let autoStopTimer = null;
+let stream = null;
+
+function startRecording() {
+    recordedBlobs = [];
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(s => {
+        stream = s;
+        const video = document.getElementById('preview');
+        video.srcObject = stream;
+
+        mediaRecorder = new MediaRecorder(stream);
+
+        mediaRecorder.ondataavailable = e => {
+            if (e.data.size > 0) recordedBlobs.push(e.data);
+        };
+
+        mediaRecorder.onstop = () => {
+            const blob = new Blob(recordedBlobs, { type: 'video/webm' });
+            video.srcObject = null;
+            video.src = URL.createObjectURL(blob);
+            video.controls = true;
+            videoFile = blob;
+
+            document.getElementById("confirmBtn").style.display = "inline-block";
+            document.getElementById("retryBtn").style.display = "inline-block";
+            document.getElementById("stopBtn").style.display = "none";
+
+            // Stop the stream
+            stream.getTracks().forEach(track => track.stop());
+        };
+
+        mediaRecorder.start();
+        document.getElementById("stopBtn").style.display = "inline-block";
+
+        autoStopTimer = setTimeout(() => {
+            if (mediaRecorder && mediaRecorder.state === "recording") {
+                mediaRecorder.stop();
+            }
+        }, 10000); // Auto stop after 10 sec
+    }).catch(err => alert("Camera access denied: " + err));
+}
+
+function stopRecording() {
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.stop();
+        clearTimeout(autoStopTimer);
+    }
+}
+
+function handleUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const video = document.getElementById("preview");
+    video.src = URL.createObjectURL(file);
+    video.controls = true;
+    videoFile = file;
+
+    document.getElementById("confirmBtn").style.display = "inline-block";
+    document.getElementById("retryBtn").style.display = "inline-block";
+    document.getElementById("stopBtn").style.display = "none";
+}
+
+function submitVideo() {
+    if (!videoFile) return alert("No video to send.");
+
+    const requester = document.getElementById("requesterHeader").dataset.requester;
+    const formData = new FormData();
+    formData.append("video", videoFile);
+    formData.append("requester", requester);
+
+    fetch("/submit-response", {
+        method: "POST",
+        body: formData
+    }).then(res => {
+        if (res.ok) {
+            alert("Video submitted!");
+            window.location.href = "/dashboard";
+        } else {
+            res.text().then(msg => alert("Upload failed: " + msg));
+        }
+    }).catch(err => {
+        alert("Network error: " + err);
+    });
+}
+
+function reset() {
+    document.getElementById("preview").srcObject = null;
+    document.getElementById("preview").src = "";
+    videoFile = null;
+
+    document.getElementById("confirmBtn").style.display = "none";
+    document.getElementById("retryBtn").style.display = "none";
+    document.getElementById("stopBtn").style.display = "none";
+
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.stop();
+    }
+
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+    }
+
+    clearTimeout(autoStopTimer);
+}
+</script>
+</body>
+</html>
